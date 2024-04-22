@@ -1,0 +1,173 @@
+---
+title: "CapstoneEDA_Buesser_Kim"
+author: "Kim Buesser"
+date: "2024-02-05"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+# Introduction
+### The goal of this EDA is to first understand the dataset in general. I want to look into the distribution of the target variable within the dataset so that we can set an understanding for the distribution of the target variable among individual variables. We can see that the target variable is categorical and therefore it will be interesting to look at proportion tables between individual variables and the target variable. Next I want to understand missingness within the dataset. It is important that we use variables that have low levels of missingness so that the model isn't unecessary skewed one way or another. Lastly I want to look into variables that have outliers, or have specific categories with very few entries. I will filter the columns with huge outliers to have a more even distribution, I can do this by simply setting an upper limit, or normalizing the column by taking the log, etc. Lastly I will join the train dataset with another dataset to understand the other variables that are available to use in order to make the best model possible. 
+
+### Question List:
+#### What is the distribution of the target variable in train?
+#### How does the distribution of the target variable affect the way we determine effective predictors within the dataset?
+#### How will the distribution of the target variable affect our models?
+#### What is the correlation between certain variables and the target variable?
+#### What variables are strong predictors?
+#### What is the degree of missingness within the dataset?
+#### What columns should be excluded due to missingness? What rows?
+#### What columns could be imputed to fill missing values?
+#### What rows should be discarded due to being outliers?
+#### What columns need normalization to generalize better within models?
+#### What columns from joined datasets improve predictors and therefore model?
+
+
+# Env Set up 
+```{r, Library download}
+library(tidyverse)
+```
+# Data import/Description of the data
+```{r, data import/description of the data}
+#test = read.csv('/Users/kimbuesser/Desktop/Data Mining/application_test.csv', stringsAsFactors = T)
+train = read.csv('/Users/kimbuesser/Desktop/Data Mining/application_train.csv', stringsAsFactors = T)
+
+#test %>% str()
+#test %>% summary()
+
+train %>% str()
+#train %>% summary()
+
+# Distribution of Target variable in train
+table(train$TARGET)
+train %>% pull(TARGET) %>% table() %>% prop.table() %>% round(2) #data is unbalanced in regards to target variable. 
+
+# Plots to understand distribution of variables
+train %>% ggplot() +
+  geom_histogram(aes(x=AMT_ANNUITY)) +
+  ggtitle("Histogram of Annuity")
+
+train %>% ggplot() +
+  geom_histogram(aes(x=AMT_CREDIT)) +
+  ggtitle("Histogram of Credit")
+
+train %>% ggplot() +
+  geom_bar(aes(x=NAME_INCOME_TYPE)) +
+  ggtitle("Barplot of Job Title")
+
+train %>% ggplot() +
+  geom_bar(aes(x=NAME_EDUCATION_TYPE)) +
+  ggtitle("Barplot of Education")
+
+# Factor variable exploration
+table(train$TARGET,train$NAME_INCOME_TYPE) # shows the raw counts
+prop.table(table(train$TARGET,train$NAME_INCOME_TYPE)) # shows the proportions
+prop.table(table(train$TARGET,train$NAME_INCOME_TYPE))*100 # shows the percentages
+# shows that Businessman is strongly associated with a target of 0 compared to student which is strongly associated with 1
+
+table(train$TARGET,train$NAME_TYPE_SUITE) # shows the raw counts
+prop.table(table(train$TARGET,train$NAME_TYPE_SUITE)) # shows the proportions
+prop.table(table(train$TARGET,train$NAME_TYPE_SUITE))*100 # shows the percentages
+# Spouse, partner has a strong association with target variable 0 outcome
+```
+### We see that the target variable is very unbalanced. The majority of the population falls into 'all other cases', meaning these people did not have repayment difficulties in the past. This makes any variable that has a higher percentage than the target variable in the total dataset an outlier, and a variable we would want to potentially use for modeling. The histograms for annuity and credit are skewed right, meaning potentially their means and sd are skewed and therefore these variables would model better if they were normalized. The majority of the population has NAME_INCOME_TYPE == working which is not very descriptive, therefore this column may not be the best to use in modeling. We also see that the majority of people have secondary level of education, but the other levels are descriptive and have data which means this could be useful column to use in our analysis. Using the prop tables we see that there are certain occupations that are more strongly associated with 'all other cases' such as pensioner and state servant, and working is more strongly associated default, as compared to the target variable distribution in the entire population.
+
+# Missing Data
+```{r, missing data}
+# Per column sum of NAs
+colSums(is.na(train))
+
+# Visualizing Missingness
+toBinaryMatrix <- function(df){ 
+m<-c() 
+for(i in colnames(df)){ 
+    x<-sum(is.na(df[,i])) 
+    # missing value count 
+    m<-append(m,x) 
+    # non-missing value count 
+    m<-append(m,nrow(df)-x)  
+} 
+  
+# adding column and row names to matrix 
+a<-matrix(m,nrow=2) 
+rownames(a)<-c("TRUE","FALSE") 
+colnames(a)<-colnames(df) 
+  
+return(a) 
+} 
+  
+# function call 
+binMat = toBinaryMatrix(train) 
+binMat
+
+barplot(binMat, 
+main = "Missing values in all features",xlab = "Frequency", 
+col = c("#4dffd2","#ff9999")) 
+
+# Any column that has a high percentage of missing values, compared to overall values should be omitted  
+```
+### I woud use this graph/output to determine the columns that have a lot of missing data and determine whether or not they are important enough columns to keep/compute missing values or if they don't add to the dataset, then get rid of those columns. 
+
+# Data Problems
+```{r, data problems}
+#train %>% summary() 
+
+# AMT_INCOME_TOTAL has such a high max that it would be good to cap it to not skew predictions
+
+train_mod <- train %>% 
+  filter(AMT_INCOME_TOTAL  <10000000,
+         CNT_CHILDREN < 10
+)
+
+# Also I would remove rows that included Other, Student, Unemployed because there is not enough data to supply results
+
+train_mod <- train %>% 
+  filter(!NAME_INCOME_TYPE %in% c('Unemployed', 'Student', 'Other'))
+```
+
+# Join DFs
+```{r, join dataframes}
+# read in csv and join it to train
+bureau <- read.csv('/Users/kimbuesser/Downloads/bureau.csv')
+
+bureau %>% str()
+
+bureau_train = merge(x = train, y = bureau, by = "SK_ID_CURR",
+                                 all.x = TRUE)
+
+# plots to understand new data trends
+
+bureau %>% ggplot() +
+  geom_histogram(aes(x=DAYS_CREDIT)) +
+  ggtitle("Histogram of Days Credit")
+
+bureau %>% ggplot() +
+  geom_histogram(aes(x=AMT_CREDIT_SUM)) +
+  ggtitle("Histogram of Credit")
+
+bureau %>% ggplot() +
+  geom_bar(aes(x=CREDIT_TYPE)) +
+  ggtitle("Barplot of Credit Type")
+  
+bureau %>% ggplot() +
+  geom_bar(aes(x=CREDIT_ACTIVE)) +
+  ggtitle("Barplot of Credit Active")
+
+# Factor variable exploration
+table(bureau_train$TARGET,bureau_train$CREDIT_TYPE) # shows the raw counts
+prop.table(table(bureau_train$TARGET,bureau_train$CREDIT_TYPE)) # shows the proportions
+prop.table(table(bureau_train$TARGET,bureau_train$CREDIT_TYPE))*100 # shows the percentages
+# shows that Businessman is strongly associated with a target of 0 compared to student which is strongly associated with 1
+
+table(bureau_train$TARGET,bureau_train$CREDIT_ACTIVE) # shows the raw counts
+prop.table(table(bureau_train$TARGET,bureau_train$CREDIT_ACTIVE)) # shows the proportions
+prop.table(table(bureau_train$TARGET,bureau_train$CREDIT_ACTIVE))*100 # shows the percentages
+# Spouse, partner has a strong association with target variable 0 outcome
+
+
+```
+### These variables that we gain from joining the tables give us more infomration to build our models from. Days credit is left skewed and debately multi-modal, AMT_CREDIT_SUM lets us know that people in the bureau dataset do not have any current credit, so definintely not useful. The majoroity of credit type is consumer credit, it would be interesting to know how the target variable is associated with people with consumer debt. Lastly we see that the dataset is split between active debt and closed debt, with more being in closed debt. Active debt has a larger difference in Target variable distribution from the overall dataset than Closed debt, so active debt may be giving us more information into target variable outcomes.
+
+### General Summary: From this initial EDA we have found some insights. I think it would be smart to first feed the model continuous data and see how it performs. It looks like AMT_CREDIT and AMT_ANNUITY were both good predictors of default and once joined with bureau DAYS_CREDIT also looks to be a good predictor due to its spread and prop table. There are definitely some problems with the data. Some columns that have large amount of missing data and some predictors that have large outliers that could affect the outcome of the model. Starting off, once I have cleaned the data and collected the predictors that I want, I would run the data through a decision tree to see how it does, train to test. From there we could complicate or simplify the model as needed. We could use random forest if the decision tree is not complicated enough or potentially SVM.
