@@ -37,4 +37,17 @@ Conclusion
 
 The exploratory data analysis phase is crucial for understanding the dataset, identifying patterns, and preparing the data for predictive modeling. By following these steps, we aim to unlock the full potential of Home Credit's data and contribute to improving financial inclusion for the unbanked population.
 
-Feel free to explore the notebooks and scripts provided in this repository to dive deeper into the data analysis process. Happy exploring!
+Modeling - Logistic Regression with Cross-Validation
+
+Introduction
+In this section, we will delve into building a predictive model using logistic regression, a commonly used technique for binary classification tasks. We will also incorporate cross-validation to evaluate the model's performance and ensure its robustness.
+
+Model Building Steps
+Data Preparation: Ensure the dataset is preprocessed and ready for modeling. This includes handling missing values, encoding categorical variables, and scaling numerical features if needed.
+Feature Selection: Identify relevant features that contribute significantly to predicting clients' repayment abilities. This step can involve techniques like feature importance analysis or domain knowledge-based selection.
+Model Training: Build a logistic regression model using the selected features. This model will learn the relationship between the input features and the target variable (repayment ability).
+Cross-Validation: Perform k-fold cross-validation to assess the model's performance. This technique helps in estimating how well the model will generalize to new data.
+Evaluation Metrics: Calculate evaluation metrics such as AUC, accuracy, precision, recall, and F1-score to measure the model's effectiveness in predicting repayment abilities.
+
+Conclusion
+By employing logistic regression coupled with cross-validation, we aim to develop a robust and accurate predictive model for Home Credit's data analysis project. The model's ability to predict clients' repayment abilities accurately is crucial for improving the loan experience and ensuring financial inclusion for the unbanked population.
