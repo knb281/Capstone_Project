@@ -1,4 +1,4 @@
-# Capstone Project
+# Predicting Default
 
 Exploratory Data Analysis (EDA) - Home Credit Group
 
